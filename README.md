@@ -1,4 +1,4 @@
-#1. Import Required Libraries
+Imports and Environment Setup
 python
 Copy code
 import os
@@ -11,75 +11,67 @@ from langchain.embeddings import OpenAIEmbeddings
 from langchain.prompts import ChatPromptTemplate
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import FAISS
-os: Provides access to environment variables and file paths.
-openai: Enables interaction with OpenAI's API for embeddings or language models.
-dotenv: Manages environment variables from a .env file.
-langchain: Offers tools for building applications using language models. Key components here:
-ChatOpenAI: Wraps OpenAI's GPT models for use in chat applications.
-PyPDFLoader: Loads content from PDF files.
-RecursiveCharacterTextSplitter: Splits long documents into manageable chunks for processing.
-OpenAIEmbeddings: Generates vector embeddings from text using OpenAI models.
-FAISS: A vector database to store and retrieve embeddings for similarity search.
-ChatPromptTemplate: Creates structured prompts for chat-based LLMs.
-LLMChain: Chains prompts and responses for querying the LLM.
-#2. Environment Variables Setup
+Imports:
+os and dotenv: Used to manage and load environment variables securely.
+openai: Enables interaction with OpenAI APIs.
+LangChain Modules: Various components are imported to create the AI-powered system, such as chat models, document loaders, text splitters, embeddings, and vector stores.
 python
 Copy code
 # Load environment variables from .env file
 load_dotenv()
-
 # Set OpenAI API key from environment variable
 os.environ['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY')
-Loads the .env file to fetch sensitive configuration values like the OpenAI API key.
-Sets the API key in the environment so the OpenAI library can authenticate requests.
-3. Initialize Chat Model
+Environment Variables:
+Loads the .env file to securely access the OPENAI_API_KEY.
+Sets the key in the environment for OpenAI interaction.
+LLM Initialization
 python
 Copy code
 # Initialize the ChatOpenAI model
 llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
-ChatOpenAI is initialized with the model gpt-3.5-turbo for chatbot functionality.
-temperature=0 ensures deterministic responses, favoring precision over randomness.
-4. Load and Preprocess the PDF Document
+Initializes a ChatGPT model (gpt-3.5-turbo) for generating responses.
+Sets temperature to 0 to ensure deterministic, precise outputs.
+PDF Document Loading
 python
 Copy code
 # Load the PDF document
 loader = PyPDFLoader(r"C:\Users\ISHAN\Music\Coronavirus.pdf")
 docs = loader.load()
-Loads the PDF from the given path.
-Converts the PDF content into a list of documents (docs) for further processing.
+Uses PyPDFLoader to load the content of a PDF file specified by its path.
+docs contains the extracted content in a format ready for processing.
+Document Splitting
 python
 Copy code
 # Initialize the text splitter
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=400, chunk_overlap=50)
-
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=400, chunk_overlap=50)
 # Split the documents into chunks
 chunks = text_splitter.split_documents(docs)
-RecursiveCharacterTextSplitter breaks long text into smaller chunks (400 characters each with 50-character overlap) to ensure better embedding and retrieval performance.
-Splits the loaded docs into smaller chunks (chunks).
-5. Generate Embeddings for Chunks
+Text Splitting:
+Splits the document into manageable "chunks" of 400 characters each, with a 50-character overlap between chunks.
+Overlap ensures continuity for context across splits.
+Embedding Initialization and Document Embedding
 python
 Copy code
 # Initialize embeddings
 embedding_model = OpenAIEmbeddings(model="text-embedding-ada-002")
-
 # Embed document chunks
 chunk_embeddings = embedding_model.embed_documents(
     [chunk.page_content for chunk in chunks])
-OpenAIEmbeddings creates embeddings using OpenAI's text-embedding-ada-002 model.
-embed_documents generates vector representations for each chunk's text content.
-6. Initialize FAISS Vector Database
+Embeddings:
+text-embedding-ada-002: OpenAI's model is used to create numerical representations of text chunks.
+The embed_documents method converts each chunk into an embedding vector, facilitating similarity-based retrieval.
+Vector Store and Retriever Setup
 python
 Copy code
 # Initialize the vector database
 vector_db = FAISS.from_documents(chunks, embedding_model)
-
 # Create the retriever
 retriever = vector_db.as_retriever()
-FAISS: A fast, in-memory vector database for similarity search.
-Stores the embeddings along with their associated text chunks.
-Converts the database into a retriever, allowing relevant chunks to be fetched based on query similarity.
-7. Create Prompt Template
+Vector Store:
+Uses FAISS (Facebook AI Similarity Search) for indexing and querying document embeddings.
+Retriever:
+Allows retrieval of the most relevant chunks based on query similarity.
+Prompt Template Setup
 python
 Copy code
 # Define the system prompt
@@ -99,14 +91,18 @@ prompt_template = ChatPromptTemplate.from_messages([
     ("system", system_prompt),
     ("human", "{input}")
 ])
-system_prompt: Provides instructions to the chatbot:
-Use only the provided data for answers.
-Include a "no idea" response if relevant information isn’t found, followed by general knowledge as a fallback.
-Limit responses to 20 words.
-ChatPromptTemplate: Constructs a structured prompt, combining system instructions and user input.
-8. Define QA Functionality
+Prompt Configuration:
+Creates a chatbot with specific behavior:
+Answer only using the loaded data.
+If data is insufficient, respond with "no idea" and provide a general knowledge answer, separated clearly.
+Response constraint: Limits responses to 20 words.
+Includes a context field to supply the retrieved chunks dynamically.
+ChatPromptTemplate creates a structured prompt for the model.
+History and QA Function
 python
 Copy code
+history = []
+
 def qa(question):
     # Retrieve the most relevant chunks from the vector store
     relevant_docs = retriever.invoke(question)
@@ -140,22 +136,21 @@ def qa(question):
     history.append({"question": question, "answer": final_answer})
 
     return final_answer
-Retrieve Chunks: Fetches relevant text chunks from the vector database.
-Create Context: Joins the retrieved chunks into a single context string.
-Format Prompt: Combines the system instructions, context, and question into a formatted prompt.
-Invoke LLM: Passes the prompt to the language model for generating a response.
-Post-Process Response:
-If the response includes "no idea," separate the fallback general knowledge.
-Otherwise, use the response as-is.
-Track History: Logs each question and its answer for future reference.
-9. Helper Function and Chain
+Function Purpose:
+Accepts a question.
+Retrieves relevant chunks using the retriever.
+Prepares a context string by concatenating the retrieved chunks.
+Sends the context and question to the LLM for a response.
+Handles responses and appends the question-answer pair to the history.
+Wrapper Function
 python
 Copy code
 def load_pdf_and_answer(question):
     return qa(question)
-Wrapper function to answer questions using the loaded PDF.
+Wrapper to answer questions using the QA pipeline.
+Optional LLMChain Creation
 python
 Copy code
 # Create the LLMChain (optional, though this is not directly interacting with the retriever here)
 chain = LLMChain(llm=llm, prompt=prompt_template)
-LLMChain: Creates a reusable pipeline with the LLM and prompt, although it’s not integrated with the retriever here.
+Creates a LLMChain to manage prompt and LLM integration. This isn't used in the qa() function directly.
