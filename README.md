@@ -1,4 +1,4 @@
-1. Import Required Libraries
+#1. Import Required Libraries
 python
 Copy code
 import os
@@ -22,7 +22,7 @@ OpenAIEmbeddings: Generates vector embeddings from text using OpenAI models.
 FAISS: A vector database to store and retrieve embeddings for similarity search.
 ChatPromptTemplate: Creates structured prompts for chat-based LLMs.
 LLMChain: Chains prompts and responses for querying the LLM.
-2. Environment Variables Setup
+#2. Environment Variables Setup
 python
 Copy code
 # Load environment variables from .env file
